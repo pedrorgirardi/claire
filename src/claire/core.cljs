@@ -67,9 +67,9 @@
 
 (defn ^{:cmd "claire.run"} launch [*sys]
   (p/promise [resolve _]
-    (let [launches (keys (:claire/run @*sys))]
-      (p/let [launch-pick-or-nil (gui/show-quick-pick launches {:placeHolder "Run..."})]
-        (when-let [{:keys [run args] :or {run :clojure}} (get-in @*sys [:claire/run launch-pick-or-nil])]
+    (let [run-configuration-keys (keys (get @*sys :claire/run-configuration))]
+      (p/let [run-configuration-key (gui/show-quick-pick run-configuration-keys {:placeHolder "Run..."})]
+        (when-let [{:keys [run args] :or {run :clojure}} (get-in @*sys [:claire/run-configuration run-configuration-key])]
           (let [^js output-channel (get @*sys :claire/output-channel)
 
                 command (case run
@@ -204,7 +204,7 @@
       (register-text-editor-command *sys #'info))
 
     (reset! *sys {:claire/output-channel output-channel
-                  :claire/run (merge config default-config)})
+                  :claire/run-configuration (merge config default-config)})
 
     (.appendLine output-channel "Claire is active.\n"))
 
