@@ -50,41 +50,44 @@
   (doseq [^js disposable disposables]
     (register-disposable context disposable)))
 
+(defn root-path []
+  (some-> (oget vscode "workspace.workspaceFolders")
+          ;; The first entry corresponds to the value of rootPath.
+          (first)
+          (oget "uri.fsPath")))
+
 (defn log-str-cwd [cwd]
   (str "Working directory\n\t" cwd "\n"))
 
-(defn log-str-cli-args [args]
-  (str "Clojure CLI args\n\t"
-       (if (seq args)
-         (clj->js args)
-         "<None>")
+(defn log-str-program [command args]
+  (str "Program\n\t" command " "
+       (when (seq args)
+         (clj->js args))
        "\n"))
 
 (defn ^{:cmd "claire.run"} launch [*sys]
   (p/promise [resolve _]
     (let [launches (keys (:claire/run @*sys))]
       (p/let [launch-pick-or-nil (gui/show-quick-pick launches {:placeHolder "Run..."})]
-        (when-let [{:keys [args socket-server]} (get-in @*sys [:claire/run launch-pick-or-nil])]
+        (when-let [{:keys [run args] :or {run :clojure}} (get-in @*sys [:claire/run launch-pick-or-nil])]
           (let [^js output-channel (get @*sys :claire/output-channel)
 
-                system-properties (map
-                                   (fn [[k {:keys [port accept]}]]
-                                     (str "-J-Dclojure.server." k "=" (pr-str {:port port :accept accept})))
-                                   socket-server)
+                command (case run
+                          :clojure "clojure"
+                          :lein "lein"
+                          ;; `clojure` is the default command.
+                          "clojure")
 
-                args (into (or args []) system-properties)
+                args (or args [])
 
-                cwd (if-let [^js folders (oget vscode "workspace.workspaceFolders")]
-                      (-> (first folders)
-                          (oget "uri.fsPath"))
-                      (os/tmpdir))
+                cwd (or (root-path) (os/tmpdir))
 
                 _ (.appendLine output-channel "Lauching program, please wait...\n")
+                _ (.appendLine output-channel (log-str-program command args))
                 _ (.appendLine output-channel (log-str-cwd cwd))
-                _ (.appendLine output-channel (log-str-cli-args args))
                 _ (.show output-channel true)
 
-                process (child-process/spawn "clojure" (clj->js args) #js {:cwd cwd})
+                process (child-process/spawn command (clj->js args) #js {:cwd cwd})
 
                 _ (.on (.-stdout process) "data"
                        (fn [data]
@@ -106,8 +109,9 @@
                            (.appendLine output-channel (str "\nProgram exited with code " code ".\n"))
                            (.show output-channel true))))]
 
-            (swap! *sys assoc :claire/program {:claire.program/cwd cwd
+            (swap! *sys assoc :claire/program {:claire.program/command command
                                                :claire.program/args args
+                                               :claire.program/cwd cwd
                                                :claire.program/process process})
 
             (resolve nil)))))))
@@ -136,12 +140,16 @@
 
 (defn ^{:cmd "claire.info"} info [*sys]
   (let [^js output-channel (get @*sys :claire/output-channel)
-        {:keys [:claire.program/cwd :claire.program/args :claire.program/process]} (get @*sys :claire/program)]
+
+        {:keys [:claire.program/command
+                :claire.program/args
+                :claire.program/cwd
+                :claire.program/process]} (get @*sys :claire/program)]
 
     (if process
       (do
-        (.appendLine output-channel (log-str-cwd cwd))
-        (.appendLine output-channel (log-str-cli-args args)))
+        (.appendLine output-channel (log-str-program command args))
+        (.appendLine output-channel (log-str-cwd cwd)))
       (.appendLine output-channel "No program is running.\n"))
 
     (.show output-channel true)))
@@ -157,15 +165,15 @@
                {:cljs
                 {:extra-deps
                  {org.clojure/clojurescript {:mvn/version "1.10.339"}}}}}]
-    {"deps.edn"
+    {"Clojure"
      {}
 
+     "Leiningen"
+     {:run :lein
+      :args ["repl"]}
+
      "Playground: Clojure REPL"
-     {:args ["-Sdeps" (pr-str deps)]
-      :socket-server
-      {'repl
-       {:port 5555
-        :accept 'clojure.core.server/io-prepl}}}
+     {:args ["-Sdeps" (pr-str deps)]}
 
      "Playground: ClojureScript - Browser REPL"
      {:args ["-Sdeps" (pr-str deps) "-A:cljs" "-m" "cljs.main" "--repl-env" "browser"]}
@@ -174,10 +182,7 @@
      {:args ["-Sdeps" (pr-str deps) "-A:cljs" "-m" "cljs.main" "--repl-env" "node"]}}))
 
 (defn activate [^js context]
-  (let [root-path (some-> (oget vscode "workspace.workspaceFolders")
-                          ;; The first entry corresponds to the value of rootPath.
-                          (first)
-                          (oget "uri.fsPath"))
+  (let [root-path (root-path)
 
         config-path (when root-path
                       (path/join root-path ".claire.edn"))
