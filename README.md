@@ -1,13 +1,14 @@
 # Claire
 
-Claire can launch your Clojure program if you have a `deps.edn` file, 
-or a playground without any configuration.
-
-### deps.edn
+Claire can launch your Clojure program if you have a `deps.edn` or `project.clj` file.
 
 You will certainly need to configure how to launch your program,
 so Claire supports run configurations. Run configurations are stored
-on the `.claire.edn` file under your project root directory and it looks like:
+on the `.claire.edn` file under your project root directory.
+
+### Clojure - deps.edn
+
+TODO
 
 ```clojure
 {"ClojureScript Browser REPL" 
@@ -16,6 +17,10 @@ on the `.claire.edn` file under your project root directory and it looks like:
 
 This is a valid `.claire.edn` with a run configuration
 for a ClojureScript REPL.
+
+### Leiningen - project.clj
+
+TODO
 
 ### Playground
 
