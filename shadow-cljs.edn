@@ -1,0 +1,13 @@
+{:source-paths ["src"]
+
+ :dependencies
+ [[cljs-node-io "0.5.0"]
+  [kitchen-async "0.1.0-SNAPSHOT"]
+  [binaryage/oops "0.6.2"]
+  [cljfmt "0.6.1"]]
+
+ :builds
+ {:extension
+  {:target    :node-library
+   :exports   {:activate claire.core/activate}
+   :output-to "extension.js"}}}

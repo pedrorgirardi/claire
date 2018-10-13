@@ -1,0 +1,69 @@
+{
+    "name": "claire",
+    "displayName": "Claire",
+    "description": "Launch a Clojure program.",
+    "version": "0.1.0-SNAPSHOT",
+    "publisher": "pedrorgirardi",
+    "engines": {
+        "vscode": "^1.23.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/pedrorgirardi/gil.git"
+    },
+    "activationEvents": [
+        "onCommand:claire.run",
+        "onCommand:claire.kill",
+        "onCommand:claire.sendSelectionToREPL",
+        "onCommand:claire.clearOutput",
+        "onCommand:claire.info"
+    ],
+    "main": "./extension",
+    "contributes": {
+        "commands": [
+            {
+                "title": "Run",
+                "category": "Claire",
+                "command": "claire.run"
+            },
+            {
+                "title": "Kill",
+                "category": "Claire",
+                "command": "claire.kill"
+            },
+            {
+                "title": "Send Selection to REPL",
+                "category": "Claire",
+                "command": "claire.sendSelectionToREPL"
+            },
+            {
+                "title": "Clear Output",
+                "category": "Claire",
+                "command": "claire.clearOutput"
+            },
+            {
+                "title": "Info",
+                "category": "Claire",
+                "command": "claire.info"
+            }
+        ]
+    },
+    "scripts": {
+        "clean": "rm -rf .shadow-cljs/",
+        "watch": "npx shadow-cljs watch :extension",
+        "compile": "npx shadow-cljs compile :extension",
+        "release": "npx shadow-cljs release :extension",
+        "vscode:prepublish": "npm run clean && npm run release",
+        "postinstall": "node ./node_modules/vscode/bin/install",
+        "test": "node ./node_modules/vscode/bin/test"
+    },
+    "dependencies": {
+        "vscode": "^1.1.21"
+    },
+    "devDependencies": {
+        "shadow-cljs": "2.6.10"
+    }
+}
