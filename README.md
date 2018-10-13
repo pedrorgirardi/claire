@@ -1,12 +1,13 @@
 # Claire
 
-Claire can launch your Clojure program if you have a `deps.edn` or `project.clj` file.
+Claire is a VS Code extension to run your Clojure program.
 
 You will certainly need to configure how to launch your program,
 so Claire supports run configurations. Run configurations are stored
 on the `.claire.edn` file under your project root directory.
 
-### Clojure - deps.edn
+### Clojure CLI
+#### `deps.edn`
 
 TODO
 
@@ -18,7 +19,8 @@ TODO
 This is a valid `.claire.edn` with a run configuration
 for a ClojureScript REPL.
 
-### Leiningen - project.clj
+### Leiningen
+#### `project.clj`
 
 TODO
 
