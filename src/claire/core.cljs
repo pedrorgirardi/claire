@@ -57,18 +57,18 @@
           (oget "uri.fsPath")))
 
 (defn out [*sys]
-  (get @*sys :claire/output-channel))
+  ^js (get @*sys :claire/output-channel))
 
 (defn show-log [out]
-  (.show out true)
+  (.show ^js out true)
 
-  out)
+  ^js out)
 
 (defn log [out & values]
   (doseq [v values]
-    (.appendLine out v))
+    (.appendLine ^js out v))
 
-  out)
+  ^js out)
 
 (defn log-str-cwd [cwd]
   (str "Working directory\n\t" cwd "\n"))
@@ -145,7 +145,7 @@
           selected-text (.getText document range)]
 
       (-> (out *sys)
-          (log "\nEvaluating...\n")
+          (log "\nProcessing...\n")
           (show-log))
 
       (.write (.-stdin process) (str selected-text "\n") "utf-8"))
