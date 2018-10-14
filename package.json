@@ -1,7 +1,7 @@
 {
     "name": "claire",
     "displayName": "Claire",
-    "description": "Launch a Clojure program.",
+    "description": "Run a Clojure program.",
     "version": "0.1.0-SNAPSHOT",
     "publisher": "pedrorgirardi",
     "engines": {
@@ -40,7 +40,7 @@
                 "command": "claire.evalSelection"
             },
             {
-                "title": "Show Program Parameters",
+                "title": "Show Run Parameters",
                 "category": "Claire",
                 "command": "claire.info"
             },
