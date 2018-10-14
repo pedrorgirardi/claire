@@ -35,19 +35,19 @@
                 "command": "claire.stop"
             },
             {
-                "title": "Eval Selection",
+                "title": "Send Selection to Program",
                 "category": "Claire",
                 "command": "claire.evalSelection"
-            },
-            {
-                "title": "Clear Output",
-                "category": "Claire",
-                "command": "claire.clearOutput"
             },
             {
                 "title": "Show Program Parameters",
                 "category": "Claire",
                 "command": "claire.info"
+            },
+            {
+                "title": "Clear Output",
+                "category": "Claire",
+                "command": "claire.clearOutput"
             }
         ]
     },
