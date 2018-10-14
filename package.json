@@ -16,8 +16,8 @@
     },
     "activationEvents": [
         "onCommand:claire.run",
-        "onCommand:claire.kill",
-        "onCommand:claire.sendSelectionToREPL",
+        "onCommand:claire.stop",
+        "onCommand:claire.evalSelection",
         "onCommand:claire.clearOutput",
         "onCommand:claire.info"
     ],
@@ -30,14 +30,14 @@
                 "command": "claire.run"
             },
             {
-                "title": "Kill",
+                "title": "Stop",
                 "category": "Claire",
-                "command": "claire.kill"
+                "command": "claire.stop"
             },
             {
-                "title": "Send Selection to REPL",
+                "title": "Eval Selection",
                 "category": "Claire",
-                "command": "claire.sendSelectionToREPL"
+                "command": "claire.evalSelection"
             },
             {
                 "title": "Clear Output",
@@ -45,7 +45,7 @@
                 "command": "claire.clearOutput"
             },
             {
-                "title": "Info",
+                "title": "Show Program Parameters",
                 "category": "Claire",
                 "command": "claire.info"
             }

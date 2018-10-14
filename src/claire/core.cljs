@@ -56,6 +56,20 @@
           (first)
           (oget "uri.fsPath")))
 
+(defn out [*sys]
+  (get @*sys :claire/output-channel))
+
+(defn show-log [out]
+  (.show out true)
+
+  out)
+
+(defn log [out & values]
+  (doseq [v values]
+    (.appendLine out v))
+
+  out)
+
 (defn log-str-cwd [cwd]
   (str "Working directory\n\t" cwd "\n"))
 
@@ -116,12 +130,15 @@
 
             (resolve nil)))))))
 
-(defn ^{:cmd "claire.kill"} kill [*sys]
+(defn ^{:cmd "claire.stop"} kill [*sys]
   (when-let [^js process (get-in @*sys [:claire/program :claire.program/process])]
+    (-> (out *sys)
+        (log "\nStopping program..."))
+
     (.kill process)))
 
-(defn ^{:cmd "claire.sendSelectionToREPL"} send-selection-to-repl [*sys editor _ _]
-  (when-let [^js process (get-in @*sys [:claire/program :claire.program/process])]
+(defn ^{:cmd "claire.evalSelection"} send-selection-to-repl [*sys editor _ _]
+  (if-let [^js process (get-in @*sys [:claire/program :claire.program/process])]
     (let [^js output-channel (get @*sys :claire/output-channel)
           ^js document (oget editor "document")
           ^js selection (oget editor "selection")
@@ -129,10 +146,14 @@
 
           selected-text (.getText document range)]
 
-      (.appendLine output-channel "\nEvaluating...\n")
-      (.show output-channel true)
+      (-> (out *sys)
+          (log "\nEvaluating...\n")
+          (show-log))
 
-      (.write (.-stdin process) (str selected-text "\n") "utf-8"))))
+      (.write (.-stdin process) (str selected-text "\n") "utf-8"))
+    (-> (out *sys)
+        (log "No program is running.\n")
+        (show-log))))
 
 (defn ^{:cmd "claire.clearOutput"} clear-output [*sys]
   (let [^js output-channel (get @*sys :claire/output-channel)]
@@ -147,12 +168,13 @@
                 :claire.program/process]} (get @*sys :claire/program)]
 
     (if process
-      (do
-        (.appendLine output-channel (log-str-program command args))
-        (.appendLine output-channel (log-str-cwd cwd)))
-      (.appendLine output-channel "No program is running.\n"))
-
-    (.show output-channel true)))
+      (-> (out *sys)
+          (log (log-str-program command args)
+               (log-str-cwd cwd))
+          (show-log))
+      (-> (out *sys)
+          (log "No program is running.\n")
+          (show-log)))))
 
 (def *sys
   (atom {}))
