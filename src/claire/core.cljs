@@ -145,7 +145,7 @@
           selected-text (.getText document range)]
 
       (-> (out *sys)
-          (log "\nProcessing...\n")
+          (log "\nEvaluating...\n")
           (show-log))
 
       (.write (.-stdin process) (str selected-text "\n") "utf-8"))
