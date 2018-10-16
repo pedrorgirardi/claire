@@ -130,11 +130,14 @@
             (resolve nil)))))))
 
 (defn ^{:cmd "claire.stop"} stop [*sys]
-  (when-let [^js process (get-in @*sys [:claire/program :claire.program/process])]
+  (if-let [^js process (get-in @*sys [:claire/program :claire.program/process])]
+    (do
+      (-> (out *sys)
+          (log "\nStopping program..."))
+      (.kill process))
     (-> (out *sys)
-        (log "\nStopping program..."))
-
-    (.kill process)))
+        (log "No program is running.\n")
+        (show-log))))
 
 (defn ^{:cmd "claire.evalSelection"} eval-selection [*sys editor _ _]
   (if-let [^js process (get-in @*sys [:claire/program :claire.program/process])]
