@@ -186,7 +186,7 @@
     {"Clojure"
      {}
 
-     "Leiningen"
+     "Leiningen REPL"
      {:run :lein
       :args ["repl"]}
 
