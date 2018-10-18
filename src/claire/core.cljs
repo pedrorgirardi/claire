@@ -46,7 +46,7 @@
   (-> (.-subscriptions context)
       (.push disposable)))
 
-(defn with-dispose [^js context & disposables]
+(defn dispose [^js context & disposables]
   (doseq [^js disposable disposables]
     (register-disposable context disposable)))
 
@@ -214,7 +214,7 @@
 
         output-channel (vscode/window.createOutputChannel "Claire")]
 
-    (with-dispose context
+    (dispose context
       (register-command *sys #'run)
       (register-command *sys #'stop)
       (register-text-editor-command *sys #'eval-selection)
