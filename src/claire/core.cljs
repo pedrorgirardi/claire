@@ -105,22 +105,19 @@
                 _ (.on (.-stdout process) "data"
                        (fn [data]
                          (-> (out *sys)
-                             (log data)
-                             (show-log))))
+                             (log data))))
 
                 _ (.on (.-stderr process) "data"
                        (fn [data]
                          (-> (out *sys)
-                             (log data)
-                             (show-log))))
+                             (log data))))
 
                 _ (.on process "close"
                        (fn [code]
                          (swap! *sys dissoc :claire/program)
 
                          (-> (out *sys)
-                             (log (str "\nProgram exited with code " code ".\n"))
-                             (show-log))))]
+                             (log (str "\nProgram exited with code " code ".\n")))))]
 
             (swap! *sys assoc :claire/program {:claire.program/command command
                                                :claire.program/args args
@@ -133,7 +130,8 @@
   (if-let [^js process (get-in @*sys [:claire/program :claire.program/process])]
     (do
       (-> (out *sys)
-          (log "\nStopping program..."))
+          (log "\nStopping program...")
+          (show-log))
       (.kill process))
     (-> (out *sys)
         (log "No program is running.\n")
