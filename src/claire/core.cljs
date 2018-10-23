@@ -81,9 +81,22 @@
 
 (defn ^{:cmd "claire.run"} run [*sys]
   (p/promise [resolve _]
-    (let [run-configuration-keys (keys (get @*sys :claire/run-configuration))]
+    (let [config-path (when-let [path (root-path)]
+                        (path/join path ".claire.edn"))
+
+          config-exist? (when config-path
+                          (fs/file? config-path))
+
+          config (when config-exist?
+                   (-> (io/slurp config-path)
+                       (reader/read-string)))
+
+          run-configuration (merge config (get @*sys :claire/run-configuration))
+
+          run-configuration-keys (keys run-configuration)]
+
       (p/let [run-configuration-key (gui/show-quick-pick run-configuration-keys {:placeHolder "Run..."})]
-        (when-let [{:keys [run args] :or {run :clojure}} (get-in @*sys [:claire/run-configuration run-configuration-key])]
+        (when-let [{:keys [run args] :or {run :clojure}} (run-configuration run-configuration-key)]
           (let [command (case run
                           :clojure "clojure"
                           :lein "lein"
@@ -200,19 +213,7 @@
      {:args ["-Sdeps" (pr-str deps) "-A:cljs" "-m" "cljs.main" "--repl-env" "node"]}}))
 
 (defn activate [^js context]
-  (let [root-path (root-path)
-
-        config-path (when root-path
-                      (path/join root-path ".claire.edn"))
-
-        config-exist? (when config-path
-                        (fs/file? config-path))
-
-        config (when config-exist?
-                 (-> (io/slurp config-path)
-                     (reader/read-string)))
-
-        output-channel (vscode/window.createOutputChannel "Claire")]
+  (let [output-channel (vscode/window.createOutputChannel "Claire")]
 
     (dispose context
       (register-command *sys #'run)
@@ -222,7 +223,7 @@
       (register-text-editor-command *sys #'info))
 
     (reset! *sys {:claire/output-channel output-channel
-                  :claire/run-configuration (merge config default-config)})
+                  :claire/run-configuration default-config})
 
     (-> (out *sys)
         (log "Claire is active.\n")))
