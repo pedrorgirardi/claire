@@ -73,8 +73,8 @@
 (defn log-str-cwd [cwd]
   (str "Working directory\n\t" cwd "\n"))
 
-(defn log-str-program [command args]
-  (str "Program\n\t" command " "
+(defn log-str-command [command args]
+  (str "Command\n\t" command " "
        (when (seq args)
          (clj->js args))
        "\n"))
@@ -109,7 +109,7 @@
 
                 _ (-> (out *sys)
                       (log "Lauching program, please wait...\n"
-                           (log-str-program command args)
+                           (log-str-command command args)
                            (log-str-cwd cwd))
                       (show-log))
 
@@ -178,7 +178,7 @@
                 :claire.program/process]} (get @*sys :claire/program)]
     (if process
       (-> (out *sys)
-          (log (log-str-program command args)
+          (log (log-str-command command args)
                (log-str-cwd cwd))
           (show-log))
       (-> (out *sys)
