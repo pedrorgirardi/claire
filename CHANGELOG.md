@@ -1,6 +1,8 @@
 # Change Log
 
 ## [0.3.0]
+- Read .claire.edn before running command
+- Tweak logs
 
 ## [0.2.0]
 - Fix logging
