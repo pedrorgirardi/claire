@@ -153,16 +153,13 @@
 (defn ^{:cmd "claire.evalSelection"} eval-selection [*sys editor _ _]
   (if-let [^js process (get-in @*sys [:claire/program :claire.program/process])]
     (let [^js document (oget editor "document")
-          ^js selection (oget editor "selection")
-          ^js range (vscode/Range. (oget selection "start") (oget selection "end"))
-
-          selected-text (.getText document range)]
-
+          ^js selection (oget editor "selection")]
       (-> (out *sys)
           (log "\nEvaluating...\n")
           (show-log))
 
-      (.write (.-stdin process) (str selected-text "\n") "utf-8"))
+      (.write (.-stdin process)
+              (str (.getText document selection) "\n") "utf-8"))
     (-> (out *sys)
         (log "No program is running.\n")
         (show-log))))
