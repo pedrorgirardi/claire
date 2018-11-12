@@ -74,9 +74,9 @@
   (str "Working directory\n\t" cwd "\n"))
 
 (defn log-str-command [command args]
-  (str "Command\n\t" command " "
+  (str command " "
        (when (seq args)
-         (clj->js args))
+         (str/join " " args))
        "\n"))
 
 (defn ^{:cmd "claire.run"} run [*sys]
@@ -91,12 +91,12 @@
                    (-> (io/slurp config-path)
                        (reader/read-string)))
 
-          run-configuration (merge config (get @*sys :claire/run-configuration))
+          runc (merge config (get @*sys :claire/run-configuration))
 
-          run-configuration-keys (keys run-configuration)]
+          available-configurations (keys runc)]
 
-      (p/let [run-configuration-key (gui/show-quick-pick run-configuration-keys {:placeHolder "Run..."})]
-        (when-let [{:keys [run args managed?] :or {run :clojure}} (run-configuration run-configuration-key)]
+      (p/let [picked-configuration (gui/show-quick-pick available-configurations {:placeHolder "Run..."})]
+        (when-let [{:keys [run args managed?] :or {run :clojure}} (runc picked-configuration)]
           (let [command (case run
                           :clojure "clojure"
                           :lein "lein"
@@ -108,20 +108,23 @@
                 cwd (or (root-path) (os/tmpdir))
 
                 _ (-> (out *sys)
-                      (log "Lauching program, please wait...\n"
+                      (log (str "Lauching '" picked-configuration "', please wait...\n")
                            (log-str-command command args)
                            (log-str-cwd cwd))
                       (show-log))
 
-                terminal (when-not managed?
-                           (vscode/window.createTerminal #js {:name run-configuration-key
-                                                              :cwd cwd}))
+                ^js terminal (when-not managed?
+                               (vscode/window.createTerminal #js {:name picked-configuration
+                                                                  :cwd cwd}))
 
                 _ (when terminal
-                    (.sendText terminal (str command " " (str/join " " args))))
+                    (.sendText terminal (str command " " (str/join " " args)))
 
-                process (when managed?
-                          (child-process/spawn command (clj->js args) #js {:cwd cwd}))]
+                    (-> (out *sys)
+                        (log (str "See Terminal '" picked-configuration "'"))))
+
+                ^js process (when managed?
+                              (child-process/spawn command (clj->js args) #js {:cwd cwd}))]
 
             (when process
               (.on (.-stdout process) "data"
@@ -141,12 +144,16 @@
                      (-> (out *sys)
                          (log (str "\nProgram exited with code " code ".\n"))))))
 
-            (swap! *sys assoc :claire/program {:claire.program/name run-configuration-key
-                                               :claire.program/command command
-                                               :claire.program/args args
-                                               :claire.program/cwd cwd
-                                               :claire.program/process process
-                                               :claire.program/terminal terminal})
+            (swap! *sys assoc :claire/program (merge {:claire.program/name picked-configuration
+                                                      :claire.program/command command
+                                                      :claire.program/args args
+                                                      :claire.program/cwd cwd}
+
+                                                     (when terminal
+                                                       {:claire.program/terminal terminal})
+
+                                                     (when process
+                                                       {:claire.program/process process})))
 
             (resolve nil)))))))
 
