@@ -96,7 +96,7 @@
           run-configuration-keys (keys run-configuration)]
 
       (p/let [run-configuration-key (gui/show-quick-pick run-configuration-keys {:placeHolder "Run..."})]
-        (when-let [{:keys [run args] :or {run :clojure}} (run-configuration run-configuration-key)]
+        (when-let [{:keys [run args managed?] :or {run :clojure}} (run-configuration run-configuration-key)]
           (let [command (case run
                           :clojure "clojure"
                           :lein "lein"
@@ -113,29 +113,40 @@
                            (log-str-cwd cwd))
                       (show-log))
 
-                process (child-process/spawn command (clj->js args) #js {:cwd cwd})
+                terminal (when-not managed?
+                           (vscode/window.createTerminal #js {:name run-configuration-key
+                                                              :cwd cwd}))
 
-                _ (.on (.-stdout process) "data"
-                       (fn [data]
-                         (-> (out *sys)
-                             (log data))))
+                _ (when terminal
+                    (.sendText terminal (str command " " (str/join " " args))))
 
-                _ (.on (.-stderr process) "data"
-                       (fn [data]
-                         (-> (out *sys)
-                             (log data))))
+                process (when managed?
+                          (child-process/spawn command (clj->js args) #js {:cwd cwd}))]
 
-                _ (.on process "close"
-                       (fn [code]
-                         (swap! *sys dissoc :claire/program)
+            (when process
+              (.on (.-stdout process) "data"
+                   (fn [data]
+                     (-> (out *sys)
+                         (log data))))
 
-                         (-> (out *sys)
-                             (log (str "\nProgram exited with code " code ".\n")))))]
+              (.on (.-stderr process) "data"
+                   (fn [data]
+                     (-> (out *sys)
+                         (log data))))
 
-            (swap! *sys assoc :claire/program {:claire.program/command command
+              (.on process "close"
+                   (fn [code]
+                     (swap! *sys dissoc :claire/program)
+
+                     (-> (out *sys)
+                         (log (str "\nProgram exited with code " code ".\n"))))))
+
+            (swap! *sys assoc :claire/program {:claire.program/name run-configuration-key
+                                               :claire.program/command command
                                                :claire.program/args args
                                                :claire.program/cwd cwd
-                                               :claire.program/process process})
+                                               :claire.program/process process
+                                               :claire.program/terminal terminal})
 
             (resolve nil)))))))
 
@@ -151,18 +162,25 @@
         (show-log))))
 
 (defn ^{:cmd "claire.evalSelection"} eval-selection [*sys editor _ _]
-  (if-let [^js process (get-in @*sys [:claire/program :claire.program/process])]
-    (let [^js document (oget editor "document")
-          ^js selection (oget editor "selection")]
-      (-> (out *sys)
-          (log "\nEvaluating...\n")
-          (show-log))
+  (let [^js process (get-in @*sys [:claire/program :claire.program/process])
+        ^js terminal (get-in @*sys [:claire/program :claire.program/terminal])]
+   (if (or process terminal)
+     (let [^js document (oget editor "document")
+           ^js selection (oget editor "selection")
+           text (.getText document selection)]
+       (-> (out *sys)
+           (log "\nEvaluating...\n"))
 
-      (.write (.-stdin process)
-              (str (.getText document selection) "\n") "utf-8"))
-    (-> (out *sys)
-        (log "No program is running.\n")
-        (show-log))))
+       (if process
+         (do
+           (.write (.-stdin process) (str text "\n") "utf-8")
+           (show-log out))
+         (do
+           (.sendText terminal text)
+          (.show terminal true))))
+     (-> (out *sys)
+         (log "No program is running.\n")
+         (show-log)))))
 
 (defn ^{:cmd "claire.clearOutput"} clear-output [*sys]
   (let [^js output-channel (get @*sys :claire/output-channel)]
@@ -192,7 +210,9 @@
                :aliases
                {:cljs
                 {:extra-deps
-                 {org.clojure/clojurescript {:mvn/version "1.10.339"}}}}}]
+                 {org.clojure/clojurescript {:mvn/version "1.10.339"}}}}}
+
+        deps (str "'" (pr-str deps) "'")]
     {"Clojure"
      {}
 
@@ -201,13 +221,13 @@
       :args ["repl"]}
 
      "Playground: Clojure REPL"
-     {:args ["-Sdeps" (pr-str deps)]}
+     {:args ["-Sdeps" deps]}
 
      "Playground: ClojureScript - Browser REPL"
-     {:args ["-Sdeps" (pr-str deps) "-A:cljs" "-m" "cljs.main" "--repl-env" "browser"]}
+     {:args ["-Sdeps" deps "-A:cljs" "-m" "cljs.main" "--repl-env" "browser"]}
 
      "Playground: ClojureScript - Node.js REPL"
-     {:args ["-Sdeps" (pr-str deps) "-A:cljs" "-m" "cljs.main" "--repl-env" "node"]}}))
+     {:args ["-Sdeps" deps "-A:cljs" "-m" "cljs.main" "--repl-env" "node"]}}))
 
 (defn activate [^js context]
   (let [output-channel (vscode/window.createOutputChannel "Claire")]
