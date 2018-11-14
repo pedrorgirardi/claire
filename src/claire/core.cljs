@@ -159,15 +159,18 @@
 
 (defn ^{:cmd "claire.stop"} stop [*sys]
   (let [^js process (get-in @*sys [:claire/program :claire.program/process])
-        ^js terminal (get-in @*sys [:claire/program :claire.program/terminal])]
+        ^js terminal (get-in @*sys [:claire/program :claire.program/terminal])
+        runc-name (get-in @*sys [:claire/program :claire.program/name])]
     (if (or process terminal)
       (do
         (-> (out *sys)
-            (log "\nStopping program...")
+            (log "\nStopping program...\n")
             (show-log))
         (if process
           (.kill process)
-          (.dispose terminal)))
+          (do
+            (.dispose terminal)
+            (log (out *sys) (str "Terminal '" runc-name "' was disposed\n")))))
       (-> (out *sys)
           (log "No program is running.\n")
           (show-log)))))
