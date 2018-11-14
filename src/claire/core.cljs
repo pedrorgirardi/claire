@@ -175,23 +175,22 @@
 (defn ^{:cmd "claire.evalSelection"} eval-selection [*sys editor _ _]
   (let [^js process (get-in @*sys [:claire/program :claire.program/process])
         ^js terminal (get-in @*sys [:claire/program :claire.program/terminal])]
-   (if (or process terminal)
-     (let [^js document (oget editor "document")
-           ^js selection (oget editor "selection")
-           text (.getText document selection)]
-       (-> (out *sys)
-           (log "\nEvaluating...\n"))
-
-       (if process
-         (do
-           (.write (.-stdin process) (str text "\n") "utf-8")
-           (show-log out))
-         (do
-           (.sendText terminal text)
-          (.show terminal true))))
-     (-> (out *sys)
-         (log "No program is running.\n")
-         (show-log)))))
+    (if (or process terminal)
+      (let [^js document (oget editor "document")
+            ^js selection (oget editor "selection")
+            text (.getText document selection)]
+        (if process
+          (do
+            (-> (out *sys)
+                (log "\nEvaluating...\n")
+                (show-log))
+            (.write (.-stdin process) (str text "\n") "utf-8"))
+          (do
+            (.sendText terminal text)
+            (.show terminal true))))
+      (-> (out *sys)
+          (log "No program is running.\n")
+          (show-log)))))
 
 (defn ^{:cmd "claire.clearOutput"} clear-output [*sys]
   (let [^js output-channel (get @*sys :claire/output-channel)]
