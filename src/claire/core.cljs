@@ -108,7 +108,7 @@
                 cwd (or (root-path) (os/tmpdir))
 
                 _ (-> (out *sys)
-                      (log (str "Lauching '" picked-configuration "', please wait...\n")
+                      (log (str "Run '" picked-configuration "'...\n")
                            (log-str-command command args)
                            (log-str-cwd cwd))
                       (show-log))
@@ -121,7 +121,7 @@
                     (.sendText terminal (str command " " (str/join " " args)))
 
                     (-> (out *sys)
-                        (log (str "See Terminal '" picked-configuration "'"))))
+                        (log (str "See Terminal '" picked-configuration "'."))))
 
                 ^js process (when managed?
                               (child-process/spawn command (clj->js args) #js {:cwd cwd}))]
@@ -170,7 +170,7 @@
           (.kill process)
           (do
             (.dispose terminal)
-            (log (out *sys) (str "Terminal '" runc-name "' was disposed\n")))))
+            (log (out *sys) (str "Terminal '" runc-name "' was disposed.\n")))))
       (-> (out *sys)
           (log "No program is running.\n")
           (show-log)))))
