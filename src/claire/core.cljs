@@ -164,11 +164,13 @@
         runc-name (get-in @*sys [:claire/program :claire.program/name])]
     (if (or process terminal)
       (do
-        (-> (out *sys)
-            (log "\nStopping program...\n")
-            (show-log))
+        (log (out *sys) "\nStopping program...\n")
+
         (if process
-          (.kill process)
+          (do
+            ;; Show log if it's a managed process.
+            (show-log (out *sys))
+            (.kill process))
           (do
             (.dispose terminal)
             (log (out *sys) (str "Terminal '" runc-name "' was disposed.\n")))))
