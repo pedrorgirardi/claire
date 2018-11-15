@@ -118,7 +118,8 @@
                                                                   :cwd cwd}))
 
                 _ (when terminal
-                    (.sendText terminal (str command " " (str/join " " args)))
+                    (.sendText terminal (str command " " (str/join " " args))
+                    (.show terminal true))
 
                     (-> (out *sys)
                         (log (str "See Terminal '" picked-configuration "'."))))
