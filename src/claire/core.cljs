@@ -74,9 +74,9 @@
   (str "Working directory\n\t" cwd "\n"))
 
 (defn log-str-command [command args]
-  (str "Command\n\t" command " "
+  (str command " "
        (when (seq args)
-         (clj->js args))
+         (str/join " " args))
        "\n"))
 
 (defn ^{:cmd "claire.run"} run [*sys]
@@ -91,12 +91,12 @@
                    (-> (io/slurp config-path)
                        (reader/read-string)))
 
-          run-configuration (merge config (get @*sys :claire/run-configuration))
+          runc (merge config (get @*sys :claire/run-configuration))
 
-          run-configuration-keys (keys run-configuration)]
+          available-configurations (keys runc)]
 
-      (p/let [run-configuration-key (gui/show-quick-pick run-configuration-keys {:placeHolder "Run..."})]
-        (when-let [{:keys [run args] :or {run :clojure}} (run-configuration run-configuration-key)]
+      (p/let [picked-configuration (gui/show-quick-pick available-configurations {:placeHolder "Run..."})]
+        (when-let [{:keys [run args managed?] :or {run :clojure}} (runc picked-configuration)]
           (let [command (case run
                           :clojure "clojure"
                           :lein "lein"
@@ -108,61 +108,95 @@
                 cwd (or (root-path) (os/tmpdir))
 
                 _ (-> (out *sys)
-                      (log "Lauching program, please wait...\n"
+                      (log (str "Run '" picked-configuration "'...\n")
                            (log-str-command command args)
                            (log-str-cwd cwd))
                       (show-log))
 
-                process (child-process/spawn command (clj->js args) #js {:cwd cwd})
+                ^js terminal (when-not managed?
+                               (vscode/window.createTerminal #js {:name picked-configuration
+                                                                  :cwd cwd}))
 
-                _ (.on (.-stdout process) "data"
-                       (fn [data]
-                         (-> (out *sys)
-                             (log data))))
+                _ (when terminal
+                    (.sendText terminal (str command " " (str/join " " args))
+                    (.show terminal true))
 
-                _ (.on (.-stderr process) "data"
-                       (fn [data]
-                         (-> (out *sys)
-                             (log data))))
+                    (-> (out *sys)
+                        (log (str "See Terminal '" picked-configuration "'."))))
 
-                _ (.on process "close"
-                       (fn [code]
-                         (swap! *sys dissoc :claire/program)
+                ^js process (when managed?
+                              (child-process/spawn command (clj->js args) #js {:cwd cwd}))]
 
-                         (-> (out *sys)
-                             (log (str "\nProgram exited with code " code ".\n")))))]
+            (when process
+              (.on (.-stdout process) "data"
+                   (fn [data]
+                     (-> (out *sys)
+                         (log data))))
 
-            (swap! *sys assoc :claire/program {:claire.program/command command
-                                               :claire.program/args args
-                                               :claire.program/cwd cwd
-                                               :claire.program/process process})
+              (.on (.-stderr process) "data"
+                   (fn [data]
+                     (-> (out *sys)
+                         (log data))))
+
+              (.on process "close"
+                   (fn [code]
+                     (swap! *sys dissoc :claire/program)
+
+                     (-> (out *sys)
+                         (log (str "\nProgram exited with code " code ".\n"))))))
+
+            (swap! *sys assoc :claire/program (merge {:claire.program/name picked-configuration
+                                                      :claire.program/command command
+                                                      :claire.program/args args
+                                                      :claire.program/cwd cwd}
+
+                                                     (when terminal
+                                                       {:claire.program/terminal terminal})
+
+                                                     (when process
+                                                       {:claire.program/process process})))
 
             (resolve nil)))))))
 
 (defn ^{:cmd "claire.stop"} stop [*sys]
-  (if-let [^js process (get-in @*sys [:claire/program :claire.program/process])]
-    (do
+  (let [^js process (get-in @*sys [:claire/program :claire.program/process])
+        ^js terminal (get-in @*sys [:claire/program :claire.program/terminal])
+        runc-name (get-in @*sys [:claire/program :claire.program/name])]
+    (if (or process terminal)
+      (do
+        (log (out *sys) "\nStopping program...\n")
+
+        (if process
+          (do
+            ;; Show log if it's a managed process.
+            (show-log (out *sys))
+            (.kill process))
+          (do
+            (.dispose terminal)
+            (log (out *sys) (str "Terminal '" runc-name "' was disposed.\n")))))
       (-> (out *sys)
-          (log "\nStopping program...")
-          (show-log))
-      (.kill process))
-    (-> (out *sys)
-        (log "No program is running.\n")
-        (show-log))))
+          (log "No program is running.\n")
+          (show-log)))))
 
 (defn ^{:cmd "claire.evalSelection"} eval-selection [*sys editor _ _]
-  (if-let [^js process (get-in @*sys [:claire/program :claire.program/process])]
-    (let [^js document (oget editor "document")
-          ^js selection (oget editor "selection")]
+  (let [^js process (get-in @*sys [:claire/program :claire.program/process])
+        ^js terminal (get-in @*sys [:claire/program :claire.program/terminal])]
+    (if (or process terminal)
+      (let [^js document (oget editor "document")
+            ^js selection (oget editor "selection")
+            text (.getText document selection)]
+        (if process
+          (do
+            (-> (out *sys)
+                (log "\nEvaluating...\n")
+                (show-log))
+            (.write (.-stdin process) (str text "\n") "utf-8"))
+          (do
+            (.sendText terminal text)
+            (.show terminal true))))
       (-> (out *sys)
-          (log "\nEvaluating...\n")
-          (show-log))
-
-      (.write (.-stdin process)
-              (str (.getText document selection) "\n") "utf-8"))
-    (-> (out *sys)
-        (log "No program is running.\n")
-        (show-log))))
+          (log "No program is running.\n")
+          (show-log)))))
 
 (defn ^{:cmd "claire.clearOutput"} clear-output [*sys]
   (let [^js output-channel (get @*sys :claire/output-channel)]
@@ -192,7 +226,9 @@
                :aliases
                {:cljs
                 {:extra-deps
-                 {org.clojure/clojurescript {:mvn/version "1.10.339"}}}}}]
+                 {org.clojure/clojurescript {:mvn/version "1.10.339"}}}}}
+
+        deps (str "'" (pr-str deps) "'")]
     {"Clojure"
      {}
 
@@ -201,13 +237,13 @@
       :args ["repl"]}
 
      "Playground: Clojure REPL"
-     {:args ["-Sdeps" (pr-str deps)]}
+     {:args ["-Sdeps" deps]}
 
      "Playground: ClojureScript - Browser REPL"
-     {:args ["-Sdeps" (pr-str deps) "-A:cljs" "-m" "cljs.main" "--repl-env" "browser"]}
+     {:args ["-Sdeps" deps "-A:cljs" "-m" "cljs.main" "--repl-env" "browser"]}
 
      "Playground: ClojureScript - Node.js REPL"
-     {:args ["-Sdeps" (pr-str deps) "-A:cljs" "-m" "cljs.main" "--repl-env" "node"]}}))
+     {:args ["-Sdeps" deps "-A:cljs" "-m" "cljs.main" "--repl-env" "node"]}}))
 
 (defn activate [^js context]
   (let [output-channel (vscode/window.createOutputChannel "Claire")]
