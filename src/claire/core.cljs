@@ -236,13 +236,13 @@
      {:run :lein
       :args ["repl"]}
 
-     "Playground: Clojure REPL"
+     "Sandbox: Clojure REPL"
      {:args ["-Sdeps" deps]}
 
-     "Playground: ClojureScript - Browser REPL"
+     "Sandbox: ClojureScript - Browser REPL"
      {:args ["-Sdeps" deps "-A:cljs" "-m" "cljs.main" "--repl-env" "browser"]}
 
-     "Playground: ClojureScript - Node.js REPL"
+     "Sandbox: ClojureScript - Node.js REPL"
      {:args ["-Sdeps" deps "-A:cljs" "-m" "cljs.main" "--repl-env" "node"]}}))
 
 (defn activate [^js context]
