@@ -221,12 +221,8 @@
 
 (def default-config
   (let [deps '{:deps
-               {org.clojure/clojure {:mvn/version "1.10.0-RC1"}}
-
-               :aliases
-               {:cljs
-                {:extra-deps
-                 {org.clojure/clojurescript {:mvn/version "1.10.339"}}}}}
+               {org.clojure/clojure {:mvn/version "1.10.0-beta7"}
+                org.clojure/clojurescript {:mvn/version "1.10.439"}}}
 
         deps (str "'" (pr-str deps) "'")]
     {"Clojure"
@@ -240,10 +236,10 @@
      {:args ["-Sdeps" deps]}
 
      "Sandbox: ClojureScript - Browser REPL"
-     {:args ["-Sdeps" deps "-A:cljs" "-m" "cljs.main" "--repl-env" "browser"]}
+     {:args ["-Sdeps" deps "-m" "cljs.main" "--repl-env" "browser"]}
 
      "Sandbox: ClojureScript - Node.js REPL"
-     {:args ["-Sdeps" deps "-A:cljs" "-m" "cljs.main" "--repl-env" "node"]}}))
+     {:args ["-Sdeps" deps "-m" "cljs.main" "--repl-env" "node"]}}))
 
 (defn activate [^js context]
   (let [output-channel (vscode/window.createOutputChannel "Claire")]
