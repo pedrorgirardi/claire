@@ -225,7 +225,7 @@
                 org.clojure/clojurescript {:mvn/version "1.10.439"}}}
 
         deps (str "'" (pr-str deps) "'")]
-    {"Clojure"
+    {"Clojure CLI"
      {}
 
      "Leiningen REPL"
