@@ -1,3 +1,7 @@
-{"Claire CLJS REPL"
+{"CLJ REPL"
+ {:cmd "npx"
+  :args ["shadow-cljs" "clj-repl" ":extension"]}
+
+ "CLJS REPL"
  {:cmd "npx"
   :args ["shadow-cljs" "cljs-repl" ":extension"]}}
