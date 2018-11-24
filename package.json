@@ -38,7 +38,7 @@
             {
                 "title": "Send Selection to Program",
                 "category": "Claire",
-                "command": "claire.evalSelection"
+                "command": "claire.sendSelectionToProgram"
             },
             {
                 "title": "Show Run Parameters",

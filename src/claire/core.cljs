@@ -175,7 +175,7 @@
           (log "No program is running.\n")
           (show-log)))))
 
-(defn ^{:cmd "claire.evalSelection"} eval-selection [*sys editor _ _]
+(defn ^{:cmd "claire.sendSelectionToProgram"} send-selection-to-program [*sys editor _ _]
   (let [^js process (get-in @*sys [:claire/program :claire.program/process])
         ^js terminal (get-in @*sys [:claire/program :claire.program/terminal])]
     (if (or process terminal)
@@ -247,7 +247,7 @@
     (dispose context
       (register-command *sys #'run)
       (register-command *sys #'stop)
-      (register-text-editor-command *sys #'eval-selection)
+      (register-text-editor-command *sys #'send-selection-to-program)
       (register-text-editor-command *sys #'clear-output)
       (register-text-editor-command *sys #'info))
 
