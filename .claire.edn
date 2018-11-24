@@ -1,1 +1,3 @@
-{"Claire" {}}
+{"Claire"
+ {:cmd "npx"
+  :args ["shadow-cljs" "cljs-repl" ":extension"]}}

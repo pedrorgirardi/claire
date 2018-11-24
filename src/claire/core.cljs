@@ -96,12 +96,8 @@
           available-configurations (keys runc)]
 
       (p/let [picked-configuration (gui/show-quick-pick available-configurations {:placeHolder "Run..."})]
-        (when-let [{:keys [run args managed?] :or {run :clojure}} (runc picked-configuration)]
-          (let [command (case run
-                          :clojure "clojure"
-                          :lein "lein"
-                          ;; `clojure` is the default command.
-                          "clojure")
+        (when-let [{:keys [cmd args managed?]} (runc picked-configuration)]
+          (let [cmd (or cmd "clj")
 
                 args (or args [])
 
@@ -109,7 +105,7 @@
 
                 _ (-> (out *sys)
                       (log (str "Run '" picked-configuration "'...\n")
-                           (log-str-command command args)
+                           (log-str-command cmd args)
                            (log-str-cwd cwd))
                       (show-log))
 
@@ -118,14 +114,14 @@
                                                                   :cwd cwd}))
 
                 _ (when terminal
-                    (.sendText terminal (str command " " (str/join " " args))
-                    (.show terminal true))
+                    (.sendText terminal (str cmd " " (str/join " " args)))
+                    (.show terminal true)
 
                     (-> (out *sys)
                         (log (str "See Terminal '" picked-configuration "'."))))
 
                 ^js process (when managed?
-                              (child-process/spawn command (clj->js args) #js {:cwd cwd}))]
+                              (child-process/spawn cmd (clj->js args) #js {:cwd cwd}))]
 
             (when process
               (.on (.-stdout process) "data"
@@ -145,16 +141,17 @@
                      (-> (out *sys)
                          (log (str "\nProgram exited with code " code ".\n"))))))
 
-            (swap! *sys assoc :claire/program (merge {:claire.program/name picked-configuration
-                                                      :claire.program/command command
-                                                      :claire.program/args args
-                                                      :claire.program/cwd cwd}
+            (swap! *sys assoc :claire/program
+                   (merge {:claire.program/name picked-configuration
+                           :claire.program/cmd cmd
+                           :claire.program/args args
+                           :claire.program/cwd cwd}
 
-                                                     (when terminal
-                                                       {:claire.program/terminal terminal})
+                          (when terminal
+                            {:claire.program/terminal terminal})
 
-                                                     (when process
-                                                       {:claire.program/process process})))
+                          (when process
+                            {:claire.program/process process})))
 
             (resolve nil)))))))
 
@@ -203,13 +200,13 @@
     (.clear output-channel)))
 
 (defn ^{:cmd "claire.info"} info [*sys]
-  (let [{:keys [:claire.program/command
+  (let [{:keys [:claire.program/cmd
                 :claire.program/args
                 :claire.program/cwd
                 :claire.program/process]} (get @*sys :claire/program)]
     (if process
       (-> (out *sys)
-          (log (log-str-command command args)
+          (log (log-str-command cmd args)
                (log-str-cwd cwd))
           (show-log))
       (-> (out *sys)
@@ -226,20 +223,23 @@
 
         deps (str "'" (pr-str deps) "'")]
     {"Clojure CLI"
-     {}
+     {:cmd "clj"}
 
      "Leiningen REPL"
-     {:run :lein
+     {:cmd "lein"
       :args ["repl"]}
 
      "Sandbox: Clojure REPL"
-     {:args ["-Sdeps" deps]}
+     {:cmd "clj"
+      :args ["-Sdeps" deps]}
 
      "Sandbox: ClojureScript - Browser REPL"
-     {:args ["-Sdeps" deps "-m" "cljs.main" "--repl-env" "browser"]}
+     {:cmd "clj"
+      :args ["-Sdeps" deps "-m" "cljs.main" "--repl-env" "browser"]}
 
      "Sandbox: ClojureScript - Node.js REPL"
-     {:args ["-Sdeps" deps "-m" "cljs.main" "--repl-env" "node"]}}))
+     {:cmd "clj"
+      :args ["-Sdeps" deps "-m" "cljs.main" "--repl-env" "node"]}}))
 
 (defn activate [^js context]
   (let [output-channel (vscode/window.createOutputChannel "Claire")]
