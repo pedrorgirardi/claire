@@ -21,12 +21,12 @@
 
         callback
         (fn []
-          (js/console.log (str "[Claire] RUN COMMAND '" cmd-name "'"))
+          (js/console.log (str "[Clojure Run] RUN COMMAND '" cmd-name "'"))
 
           (try
             (cmd *sys)
             (catch js/Error e
-              (js/console.error (str "[Claire] FAILED TO RUN COMMAND '" cmd-name "'") e))))]
+              (js/console.error (str "[Clojure Run] FAILED TO RUN COMMAND '" cmd-name "'") e))))]
     (vscode/commands.registerCommand cmd-name callback)))
 
 (defn- register-text-editor-command [*sys cmd]
@@ -34,12 +34,12 @@
 
         callback
         (fn [editor edit args]
-          (js/console.log (str "[Claire] RUN EDITOR COMMAND '" cmd-name "'"))
+          (js/console.log (str "[Clojure Run] RUN EDITOR COMMAND '" cmd-name "'"))
 
           (try
             (cmd *sys editor edit args)
             (catch js/Error e
-              (js/console.error (str "[Claire] FAILED TO RUN EDITOR COMMAND '" cmd-name "'") e))))]
+              (js/console.error (str "[Clojure Run] FAILED TO RUN EDITOR COMMAND '" cmd-name "'") e))))]
     (vscode/commands.registerTextEditorCommand cmd-name callback)))
 
 (defn register-disposable [^js context ^js disposable]
@@ -79,83 +79,83 @@
          (str/join " " args))
        "\n"))
 
-(defn ^{:cmd "claire.run"} run [*sys]
+(defn ^{:cmd "clojure-run.run"} run [*sys]
   (p/promise [resolve _]
-    (let [config-path (when-let [path (root-path)]
-                        (path/join path ".claire.edn"))
+             (let [config-path (when-let [path (root-path)]
+                                 (path/join path "clojure-run.edn"))
 
-          config-exist? (when config-path
-                          (fs/file? config-path))
+                   config-exist? (when config-path
+                                   (fs/file? config-path))
 
-          config (when config-exist?
-                   (-> (io/slurp config-path)
-                       (reader/read-string)))
+                   config (when config-exist?
+                            (-> (io/slurp config-path)
+                                (reader/read-string)))
 
-          runc (merge config (get @*sys :claire/run-configuration))
+                   runc (merge config (get @*sys :claire/run-configuration))
 
-          available-configurations (keys runc)]
+                   available-configurations (keys runc)]
 
-      (p/let [picked-configuration (gui/show-quick-pick available-configurations {:placeHolder "Run..."})]
-        (when-let [{:keys [cmd args managed?]} (runc picked-configuration)]
-          (let [cmd (or cmd "clj")
+               (p/let [picked-configuration (gui/show-quick-pick available-configurations {:placeHolder "Run..."})]
+                 (when-let [{:keys [cmd args managed?]} (runc picked-configuration)]
+                   (let [cmd (or cmd "clj")
 
-                args (or args [])
+                         args (or args [])
 
-                cwd (or (root-path) (os/tmpdir))
+                         cwd (or (root-path) (os/tmpdir))
 
-                _ (-> (out *sys)
-                      (log (str "Run '" picked-configuration "'...\n")
-                           (log-str-command cmd args)
-                           (log-str-cwd cwd))
-                      (show-log))
+                         _ (-> (out *sys)
+                               (log (str "Run '" picked-configuration "'...\n")
+                                    (log-str-command cmd args)
+                                    (log-str-cwd cwd))
+                               (show-log))
 
-                ^js terminal (when-not managed?
-                               (vscode/window.createTerminal #js {:name picked-configuration
-                                                                  :cwd cwd}))
+                         ^js terminal (when-not managed?
+                                        (vscode/window.createTerminal #js {:name picked-configuration
+                                                                           :cwd cwd}))
 
-                _ (when terminal
-                    (.sendText terminal (str cmd " " (str/join " " args)))
-                    (.show terminal true)
+                         _ (when terminal
+                             (.sendText terminal (str cmd " " (str/join " " args)))
+                             (.show terminal true)
 
-                    (-> (out *sys)
-                        (log (str "See Terminal '" picked-configuration "'."))))
+                             (-> (out *sys)
+                                 (log (str "See Terminal '" picked-configuration "'."))))
 
-                ^js process (when managed?
-                              (child-process/spawn cmd (clj->js args) #js {:cwd cwd}))]
+                         ^js process (when managed?
+                                       (child-process/spawn cmd (clj->js args) #js {:cwd cwd}))]
 
-            (when process
-              (.on (.-stdout process) "data"
-                   (fn [data]
-                     (-> (out *sys)
-                         (log data))))
+                     (when process
+                       (.on (.-stdout process) "data"
+                            (fn [data]
+                              (-> (out *sys)
+                                  (log data))))
 
-              (.on (.-stderr process) "data"
-                   (fn [data]
-                     (-> (out *sys)
-                         (log data))))
+                       (.on (.-stderr process) "data"
+                            (fn [data]
+                              (-> (out *sys)
+                                  (log data))))
 
-              (.on process "close"
-                   (fn [code]
-                     (swap! *sys dissoc :claire/program)
+                       (.on process "close"
+                            (fn [code]
+                              (swap! *sys dissoc :claire/program)
 
-                     (-> (out *sys)
-                         (log (str "\nProgram exited with code " code ".\n"))))))
+                              (-> (out *sys)
+                                  (log (str "\nProgram exited with code " code ".\n"))))))
 
-            (swap! *sys assoc :claire/program
-                   (merge {:claire.program/name picked-configuration
-                           :claire.program/cmd cmd
-                           :claire.program/args args
-                           :claire.program/cwd cwd}
+                     (swap! *sys assoc :claire/program
+                            (merge {:claire.program/name picked-configuration
+                                    :claire.program/cmd cmd
+                                    :claire.program/args args
+                                    :claire.program/cwd cwd}
 
-                          (when terminal
-                            {:claire.program/terminal terminal})
+                                   (when terminal
+                                     {:claire.program/terminal terminal})
 
-                          (when process
-                            {:claire.program/process process})))
+                                   (when process
+                                     {:claire.program/process process})))
 
-            (resolve nil)))))))
+                     (resolve nil)))))))
 
-(defn ^{:cmd "claire.stop"} stop [*sys]
+(defn ^{:cmd "clojure-run.stop"} stop [*sys]
   (let [^js process (get-in @*sys [:claire/program :claire.program/process])
         ^js terminal (get-in @*sys [:claire/program :claire.program/terminal])
         runc-name (get-in @*sys [:claire/program :claire.program/name])]
@@ -175,7 +175,7 @@
           (log "No program is running.\n")
           (show-log)))))
 
-(defn ^{:cmd "claire.sendSelectionToProgram"} send-selection-to-program [*sys editor _ _]
+(defn ^{:cmd "clojure-run.sendSelectionToProgram"} send-selection-to-program [*sys editor _ _]
   (let [^js process (get-in @*sys [:claire/program :claire.program/process])
         ^js terminal (get-in @*sys [:claire/program :claire.program/terminal])]
     (if (or process terminal)
@@ -195,31 +195,13 @@
           (log "No program is running.\n")
           (show-log)))))
 
-(defn ^{:cmd "claire.clearOutput"} clear-output [*sys]
-  (let [^js output-channel (get @*sys :claire/output-channel)]
-    (.clear output-channel)))
-
-(defn ^{:cmd "claire.info"} info [*sys]
-  (let [{:keys [:claire.program/cmd
-                :claire.program/args
-                :claire.program/cwd
-                :claire.program/process]} (get @*sys :claire/program)]
-    (if process
-      (-> (out *sys)
-          (log (log-str-command cmd args)
-               (log-str-cwd cwd))
-          (show-log))
-      (-> (out *sys)
-          (log "No program is running.\n")
-          (show-log)))))
-
 (def *sys
   (atom {}))
 
 (def default-config
   (let [deps '{:deps
-               {org.clojure/clojure {:mvn/version "1.10.0-beta7"}
-                org.clojure/clojurescript {:mvn/version "1.10.439"}}}
+               {org.clojure/clojure {:mvn/version "1.10.0"}
+                org.clojure/clojurescript {:mvn/version "1.10.520"}}}
 
         deps (str "'" (pr-str deps) "'")]
     {"Leiningen REPL"
@@ -239,20 +221,18 @@
       :args ["-Sdeps" deps "-m" "cljs.main" "--repl-env" "node"]}}))
 
 (defn activate [^js context]
-  (let [output-channel (vscode/window.createOutputChannel "Claire")]
+  (let [output-channel (vscode/window.createOutputChannel "Clojure Run")]
 
     (dispose context
-      (register-command *sys #'run)
-      (register-command *sys #'stop)
-      (register-text-editor-command *sys #'send-selection-to-program)
-      (register-text-editor-command *sys #'clear-output)
-      (register-text-editor-command *sys #'info))
+             (register-command *sys #'run)
+             (register-command *sys #'stop)
+             (register-text-editor-command *sys #'send-selection-to-program))
 
     (reset! *sys {:claire/output-channel output-channel
                   :claire/run-configuration default-config})
 
     (-> (out *sys)
-        (log "Claire is active.\n")))
+        (log "Clojure Run is active.\n")))
 
   nil)
 

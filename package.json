@@ -1,6 +1,6 @@
 {
-    "name": "claire",
-    "displayName": "Claire",
+    "name": "clojure-run",
+    "displayName": "Clojure Run",
     "description": "Run a Clojure program.",
     "version": "0.4.0-SNAPSHOT",
     "publisher": "pedrorgirardi",
@@ -13,42 +13,30 @@
     "icon": "images/icon.png",
     "repository": {
         "type": "git",
-        "url": "https://github.com/pedrorgirardi/gil.git"
+        "url": "https://github.com/pedrorgirardi/clojure-run.git"
     },
     "activationEvents": [
-        "onCommand:claire.run",
-        "onCommand:claire.stop",
-        "onCommand:claire.sendSelectionToProgram",
-        "onCommand:claire.clearOutput",
-        "onCommand:claire.info"
+        "onCommand:clojure-run.run",
+        "onCommand:clojure-run.stop",
+        "onCommand:clojure-run.sendSelectionToProgram"
     ],
     "main": "./extension",
     "contributes": {
         "commands": [
             {
                 "title": "Run",
-                "category": "Claire",
-                "command": "claire.run"
+                "category": "Clojure Run",
+                "command": "clojure-run.run"
             },
             {
                 "title": "Stop",
-                "category": "Claire",
-                "command": "claire.stop"
+                "category": "Clojure Run",
+                "command": "clojure-run.stop"
             },
             {
                 "title": "Send Selection to Program",
-                "category": "Claire",
-                "command": "claire.sendSelectionToProgram"
-            },
-            {
-                "title": "Show Run Parameters",
-                "category": "Claire",
-                "command": "claire.info"
-            },
-            {
-                "title": "Clear Output",
-                "category": "Claire",
-                "command": "claire.clearOutput"
+                "category": "Clojure Run",
+                "command": "clojure-run.sendSelectionToProgram"
             }
         ]
     },
@@ -61,10 +49,8 @@
         "postinstall": "node ./node_modules/vscode/bin/install",
         "test": "node ./node_modules/vscode/bin/test"
     },
-    "dependencies": {
-        "vscode": "^1.1.21"
-    },
     "devDependencies": {
-        "shadow-cljs": "2.7.6"
+        "vscode": "1.1.33",
+        "shadow-cljs": "2.8.21"
     }
 }
