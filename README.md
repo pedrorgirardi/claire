@@ -1,3 +1,3 @@
-# Claire
+# Clojure Run
 
-Claire is an extension to run Clojure programs within VS Code via `clojure` or `lein`.
+VS Code extension to run Clojure programs via `clojure CLI` or `lein`.
